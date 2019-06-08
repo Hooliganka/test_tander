@@ -4,12 +4,6 @@ import sqlite3
 from config import database_name
 
 
-def my_connect():
-    connect = sqlite3.connect(database_name)
-    cursor = connect.cursor()
-    return cursor
-
-
 def query(sql: str) -> list:
     def dict_factory(c, row):
         return {col[0]: row[idx] for idx, col in enumerate(c.description)}
@@ -28,28 +22,27 @@ def comment(request, *args, **kwargs):  # Добавление коммента�
         '{{SUCCESS}}': '',
         '{{ERROR}}': '',
     }
-    my_connect()
 
     # Проверки на валидность
 
-    if request['GET']:
+    if request.get('POST'):
         result['{{ERROR}}'] = []
-        if not request['GET'].get('name', ''):
+        if not request['POST'].get('name', ''):
             result['{{ERROR}}'].append('<li>Некорректно введено имя!</li>')
 
-        if not request['GET'].get('last_name', ''):
+        if not request['POST'].get('last_name', ''):
             result['{{ERROR}}'].append('<li>Некорректно введена фамилия!</li>')
 
-        if not request['GET'].get('comment', ''):
+        if not request['POST'].get('comment', ''):
             result['{{ERROR}}'].append('<li>Некорректно введен комментарий!</li>')
 
         pattern_email = r'^[-a-z0-9_.]+@([-a-z0-9]+\.)+[a-z]{2,6}$'
-        match = re.search(pattern_email, request['GET'].get('email', ''))
+        match = re.search(pattern_email, request['POST'].get('email', ''))
         if not match:
             result['{{ERROR}}'].append('<li>Некорректно введен email!</li>')
 
         pattern_telephone = r'^(\s*)?(\+)?([- _():=+]?\d[- _():=+]?){10,14}(\s*)?$'
-        match = re.search(pattern_telephone, request['GET'].get('telephone', ''))
+        match = re.search(pattern_telephone, request['POST'].get('telephone', ''))
         if not match:
             result['{{ERROR}}'].append('<li>Некорректно введен телефон!</li>')
 
@@ -67,14 +60,14 @@ def comment(request, *args, **kwargs):  # Добавление коммента�
             query(
                 "INSERT INTO 'comment' (`name`, `last_name`,`middle_name`,`region`, `city`, `email`, `telephone`,`comment`) "
                 "VALUES ('%s','%s','%s','%s','%s','%s','%s','%s')" % (
-                    request['GET'].get('name', ''),
-                    request['GET']['last_name'],
-                    request['GET']['middle_name'],
-                    int(request['GET']['region']),
-                    int(request['GET']['city']),
-                    request['GET']['email'],
-                    request['GET']['telephone'],
-                    request['GET']['comment']
+                    request['POST'].get('name', ''),
+                    request['POST']['last_name'],
+                    request['POST']['middle_name'],
+                    int(request['POST']['region']),
+                    int(request['POST']['city']),
+                    request['POST']['email'],
+                    request['POST']['telephone'],
+                    request['POST']['comment']
                 )
             )
             result['{{SUCCESS}}'] = '<p>Данные успешно записаны!</p>'
@@ -95,8 +88,9 @@ def comment(request, *args, **kwargs):  # Добавление коммента�
 
 
 def get_cities(request, *args, **kwargs):  # Получение городов по региону
+    rows = []
     if request['POST']:
-        rows = query("SELECT * FROM `city` WHERE `region`=%s" % request['POST'].get('city'))
+        rows = query("SELECT * FROM `city` WHERE `region`=%s" % request['POST'].get('city', 0))
     return json.dumps(rows)
 
 
@@ -141,7 +135,7 @@ def del_comment(request, *args, **kwargs):
         'STATE': 'ERROR',
     }
     if request['POST']:
-        query("DELETE FROM `comment` WHERE `id`=%s" % request['POST'].get('delete'))
+        query("DELETE FROM `comment` WHERE `id`=%s" % request['POST'].get('comment_id'))
         result['STATE'] = 'OK'
     return json.dumps(result)
 

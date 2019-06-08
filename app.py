@@ -1,32 +1,31 @@
 import re
-from basebd import my_bd
-from config import database_name, qs_parser
-from url import patterns
+import copy
 
-my_bd(database_name)
+from basebd import my_bd
+from url import patterns
 
 
 def app(request, start_response, *args, **kwargs):
+    from config import database_name, qs_parser
+    my_bd(database_name)
+
     response = ''
     start_response('200 OK', [('Content-Type', 'text/html')])
     for url in patterns:
         match = re.search(url[0], request['PATH_INFO'])
-        mat = re.findall(r'(?P<region_id>[0-9]+)', request['PATH_INFO'])
-        if mat:
-            real = ''.join(mat)
-            kwargs['id'] = int(real)
         if match:
+            kwargs = copy.deepcopy(match.groupdict())
             if request['REQUEST_METHOD'] == 'GET':
                 request['GET'] = qs_parser(request['QUERY_STRING'])
                 context = None
                 if url[2]:
                     context = url[2](request, *args, **kwargs)
                 if url[1]:
-                    i = open('templates/%s' % url[1], 'r', encoding='utf-8')
-                    response = i.read()
-                    if context:
-                        for key in context:
-                            response = response.replace(key, context[key])
+                    with open('templates/%s' % url[1], 'r', encoding='utf-8') as i:
+                        response = i.read()
+                        if context:
+                            for key in context:
+                                response = response.replace(key, context[key])
                 else:
                     response = context
 

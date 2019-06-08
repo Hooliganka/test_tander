@@ -82,7 +82,7 @@
                     };
                     console.log('dat',element_click.getAttribute('dat'));
                     req.open("POST", "/api/delete_comment/", true);
-                    req.send('delete=' + element_click.getAttribute('dat'));
+                    req.send('comment_id=' + element_click.getAttribute('dat'));
                 };
         }
     </script>
