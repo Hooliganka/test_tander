@@ -22,24 +22,18 @@ class TestMyApp(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        # try:
-        #     os.remove(cls.name_test_database)
-        # except:
-        #     pass
+        try:
+            os.remove(cls.name_test_database)
+        except:
+            pass
 
         cls.name_test_database = 'test.db'
         cls.tread = threading.Thread(target=runserver, daemon=True, args=(cls.name_test_database, cls.ip, cls.port))
         cls.tread.start()
 
-    def setUp(self) -> None:
-        print('Перед тестом')
-
-    def tearDown(self) -> None:
-        print('После теста')
-
-    # @classmethod
-    # def tearDownClass(cls) -> None:
-    #     os.remove(cls.name_test_database)
+    @classmethod
+    def tearDownClass(cls) -> None:
+        os.remove(cls.name_test_database)
 
     def testIsRunServer(self):
         r = requests.get(self.host)
@@ -100,7 +94,7 @@ class TestMyApp(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
 
     def testErrorAddComment(self):
-        r = requests.post(f'{self.host}/comment/', params=dict(
+        r = requests.post(f'{self.host}/comment/', data=dict(
             name='name',
         ))
         self.assertEqual(r.status_code, 200)

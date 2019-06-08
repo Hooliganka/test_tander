@@ -1,14 +1,15 @@
 import json
 import re
 import sqlite3
-from config import database_name
+
+from utils import render
 
 
-def query(sql: str) -> list:
+def query(request, sql: str) -> list:
     def dict_factory(c, row):
         return {col[0]: row[idx] for idx, col in enumerate(c.description)}
 
-    with sqlite3.connect(database_name) as connect:
+    with sqlite3.connect(request.get('database_name', 'my.db')) as connect:
         connect.row_factory = dict_factory
         cursor = connect.cursor()
         cursor.execute(sql)
@@ -57,7 +58,7 @@ def comment(request, *args, **kwargs):  # Добавление коммента�
 
             # Запись в базу
 
-            query(
+            query(request,
                 "INSERT INTO 'comment' (`name`, `last_name`,`middle_name`,`region`, `city`, `email`, `telephone`,`comment`) "
                 "VALUES ('%s','%s','%s','%s','%s','%s','%s','%s')" % (
                     request['POST'].get('name', ''),
@@ -74,7 +75,7 @@ def comment(request, *args, **kwargs):  # Добавление коммента�
 
     # Вывод региона
 
-    rows = query("SELECT * FROM `regions`")
+    rows = query(request, "SELECT * FROM `regions`")
     pat = '<option value="{{region.id}}">{{region}}</option>'
     items = ''
     t = 0
@@ -84,18 +85,18 @@ def comment(request, *args, **kwargs):  # Добавление коммента�
         t = t + 1
     result['{{regions}}'] = items
 
-    return result
+    return render('comment.html', result)
 
 
 def get_cities(request, *args, **kwargs):  # Получение городов по региону
     rows = []
     if request['POST']:
-        rows = query("SELECT * FROM `city` WHERE `region`=%s" % request['POST'].get('city', 0))
+        rows = query(request, "SELECT * FROM `city` WHERE `region`=%s" % request['POST'].get('city', 0))
     return json.dumps(rows)
 
 
 def view(request, *args, **kwargs):  # вывод всех комментов
-    rows = query("""SELECT `comment`.id AS id,
+    rows = query(request, """SELECT `comment`.id AS id,
                           `comment`.name,
                           `last_name`,
                           `middle_name`,
@@ -125,9 +126,7 @@ def view(request, *args, **kwargs):  # вывод всех комментов
             'comment']).replace(
             '{{id}}', str(row['id']))
 
-    return {
-        '{{comments}}': items,
-    }
+    return render('view.html', {'{{comments}}': items})
 
 
 def del_comment(request, *args, **kwargs):
@@ -135,13 +134,13 @@ def del_comment(request, *args, **kwargs):
         'STATE': 'ERROR',
     }
     if request['POST']:
-        query("DELETE FROM `comment` WHERE `id`=%s" % request['POST'].get('comment_id'))
+        query(request, "DELETE FROM `comment` WHERE `id`=%s" % request['POST'].get('comment_id'))
         result['STATE'] = 'OK'
     return json.dumps(result)
 
 
 def stat(request, *args, **kwargs):
-    rows = query("""SELECT regions.id, name, comments_count
+    rows = query(request, """SELECT regions.id, name, comments_count
                         FROM regions,
                             (SELECT region, COUNT(region) AS comments_count
                            FROM comment
@@ -154,15 +153,13 @@ def stat(request, *args, **kwargs):
         items = items + patt.replace('{{id}}', str(row['id'])).replace('{{name}}', row['name']).replace(
             '{{comments_count}}',
             str(row['comments_count']))
-    return {
-        '{{regions}}': items,
-    }
+    return render('stat.html', {'{{regions}}': items})
 
 
 def stat_city(request, *args, **kwargs):
-    kwargs['region'] = query("SELECT name FROM regions WHERE id=%s" % kwargs['id'])
+    kwargs['region'] = query(request, "SELECT name FROM regions WHERE id=%s" % kwargs['id'])
 
-    rows = query('''SELECT city.id, city.name , COUNT(*) AS comments_count
+    rows = query(request, '''SELECT city.id, city.name , COUNT(*) AS comments_count
                     FROM comment, (SELECT id, name FROM city WHERE region=%s)city
                     WHERE region=%s AND city=city.id GROUP BY city.id''' % (kwargs['id'], kwargs['id']))
     patt = '<tr><td>{{id}}</td><td>{{name}}</td><td>{{comments_count}}</td></tr>'
@@ -172,6 +169,4 @@ def stat_city(request, *args, **kwargs):
         items = items + patt.replace('{{id}}', str(row['id'])).replace('{{name}}', row['name']).replace(
             '{{comments_count}}',
             str(row['comments_count']))
-    return {
-        '{{sities}}': items,
-    }
+    return render('stat_city.html', {'{{sities}}': items})
