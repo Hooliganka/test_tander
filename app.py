@@ -1,18 +1,9 @@
 import re
-from urllib.parse import parse_qsl
 from basebd import my_bd
-from config import database_name
+from config import database_name, qs_parser
 from url import patterns
 
 my_bd(database_name)
-
-
-def qs_parser(qs):
-    result = {}
-    for row in parse_qsl(qs):
-        result[row[0]] = row[1]
-
-    return result
 
 
 def app(request, start_response, *args, **kwargs):
@@ -20,10 +11,10 @@ def app(request, start_response, *args, **kwargs):
     start_response('200 OK', [('Content-Type', 'text/html')])
     for url in patterns:
         match = re.search(url[0], request['PATH_INFO'])
-        # mat = re.findall(r'(?P<region_id>[0-9]+)', request['PATH_INFO'])
-        # if mat:
-        #     real = ''.join(mat)
-        #     kwargs['id'] = int(real)
+        mat = re.findall(r'(?P<region_id>[0-9]+)', request['PATH_INFO'])
+        if mat:
+            real = ''.join(mat)
+            kwargs['id'] = int(real)
         if match:
             if request['REQUEST_METHOD'] == 'GET':
                 request['GET'] = qs_parser(request['QUERY_STRING'])
@@ -46,15 +37,3 @@ def app(request, start_response, *args, **kwargs):
                 response = url[2](request, *args, **kwargs)
 
     return [response.encode()]
-    # return render(request)
-    # return [b'Hello, world!']
-
-
-if __name__ == '__main__':
-    try:
-        from wsgiref.simple_server import make_server
-        httpd = make_server('127.0.0.1', 8080, app)
-        print('Serving on port 8080...')
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print('Goodbye.')

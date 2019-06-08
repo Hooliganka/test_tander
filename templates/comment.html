@@ -99,7 +99,7 @@
     </div>
     <script>
         function getXmlHttp() {
-            var xmlhttp;
+            let xmlhttp;
             try {
                 xmlhttp = new ActiveXObject("Msxml2.XMLHTTP");
             } catch (e) {
@@ -115,26 +115,27 @@
             return xmlhttp;
         }
         document.getElementById("region").addEventListener("change", myFunction);
-        var sity_element = document.getElementById("city");
+        let sity_element = document.getElementById("city");
         function myFunction(event) {
             if (event.target.value === '-1') {
                 sity_element.setAttribute("disabled", "disabled");
                 sity_element.innerHTML = '<option value="-1">- Выберите город -</option>';
             } else {
                 sity_element.removeAttribute("disabled");
-                var req = getXmlHttp();
+                let req = getXmlHttp();
                 req.onreadystatechange = function () {
                     if (req.readyState === 4) {
                         if (req.status === 200) {
-                            var data = JSON.parse(req.responseText);
-                            console.log(data);
-                            var result = '';
-                            for (var i = 0; i < data.length; i++) {
-                                result += '<option value="' + data[i][0] + '">' + data[i][1] + '</option>';
+                            let data = JSON.parse(req.responseText);
+                            console.log('data', data);
+                            let result = '';
+                            for (let i = 0; i < data.length; i++) {
+                                result += '<option value="' + data[i]['id'] + '">' + data[i]['name'] + '</option>';
+                                console.log('result',result);
                             }
 
                             sity_element.innerHTML = result;
-                            console.log(result);
+                            console.log('result',result);
                         }
                     }
                 };

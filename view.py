@@ -23,13 +23,12 @@ def query(sql: str) -> list:
     return rows
 
 
-def comment(request, *args, **kwargs):
+def comment(request, *args, **kwargs):  # Добавление комментария
     result = {
         '{{SUCCESS}}': '',
         '{{ERROR}}': '',
     }
-    connect = sqlite3.connect(database_name)
-    cursor = connect.cursor()
+    my_connect()
 
     # Проверки на валидность
 
@@ -84,20 +83,101 @@ def comment(request, *args, **kwargs):
 
     rows = query("SELECT * FROM `regions`")
     pat = '<option value="{{region.id}}">{{region}}</option>'
-
     items = ''
     t = 0
+
     for row in rows:
         items = items + pat.replace('{{region}}', row['name']).replace('{{region.id}}', str(row['id']))
-        t = t+1
+        t = t + 1
     result['{{regions}}'] = items
+
     return result
 
 
 def get_cities(request, *args, **kwargs):  # Получение городов по региону
-    result = ''
     if request['POST']:
         rows = query("SELECT * FROM `city` WHERE `region`=%s" % request['POST'].get('city'))
-        result = json.dumps(rows)
-    print('result', result)
-    return result
+    return json.dumps(rows)
+
+
+def view(request, *args, **kwargs):  # вывод всех комментов
+    rows = query("""SELECT `comment`.id AS id,
+                          `comment`.name,
+                          `last_name`,
+                          `middle_name`,
+                          regions.name AS region,
+                          city.name AS city,
+                          `email`,
+                          `telephone`,
+                          `comment`
+                        FROM
+                          comment
+                        INNER JOIN regions ON comment.region=regions.id
+                        INNER JOIN city ON comment.city=city.id""")
+
+    patt = '<tr><td>{{id}}</td><td>{{name}}</td><td>{{last_name}}</td><td>{{middle_name}}</td><td>{{region}}</td><td>{{' \
+           'city}}</td><td>{{email}}</td><td>{{telephone}}</td><td>{{comment}}</td><td class="del" dat="{{id}}" ' \
+           'style="cursor: pointer">Х</td></tr>'
+
+    items = ''
+
+    for row in rows:
+        items = items + patt.replace('{{id}}', str(row['id'])).replace('{{name}}', row['name']).replace('{{last_name}}',
+                                                                                                        row[
+                                                                                                            'last_name']) \
+            .replace('{{middle_name}}', row['middle_name']).replace('{{region}}', str(row['region'])).replace(
+            '{{city}}', str(row['city'])) \
+            .replace('{{email}}', row['email']).replace('{{telephone}}', row['telephone']).replace('{{comment}}', row[
+            'comment']).replace(
+            '{{id}}', str(row['id']))
+
+    return {
+        '{{comments}}': items,
+    }
+
+
+def del_comment(request, *args, **kwargs):
+    result = {
+        'STATE': 'ERROR',
+    }
+    if request['POST']:
+        query("DELETE FROM `comment` WHERE `id`=%s" % request['POST'].get('delete'))
+        result['STATE'] = 'OK'
+    return json.dumps(result)
+
+
+def stat(request, *args, **kwargs):
+    rows = query("""SELECT regions.id, name, comments_count
+                        FROM regions,
+                            (SELECT region, COUNT(region) AS comments_count
+                           FROM comment
+                           GROUP BY region
+                          )regs
+                        WHERE id=region AND comments_count>5""")
+    patt = '<tr><td>{{id}}</td><td><a href="/stat/{{id}}/">{{name}}</a></td><td>{{comments_count}}</td></tr>'
+    items = ''
+    for row in rows:
+        items = items + patt.replace('{{id}}', str(row['id'])).replace('{{name}}', row['name']).replace(
+            '{{comments_count}}',
+            str(row['comments_count']))
+    return {
+        '{{regions}}': items,
+    }
+
+
+def stat_city(request, *args, **kwargs):
+    kwargs['region'] = query("SELECT name FROM regions WHERE id=%s" % kwargs['id'])
+
+    rows = query('''SELECT city.id, city.name , COUNT(*) AS comments_count
+                    FROM comment, (SELECT id, name FROM city WHERE region=%s)city
+                    WHERE region=%s AND city=city.id GROUP BY city.id''' % (kwargs['id'], kwargs['id']))
+    patt = '<tr><td>{{id}}</td><td>{{name}}</td><td>{{comments_count}}</td></tr>'
+
+    items = ''
+    for row in rows:
+        items = items + patt.replace('{{id}}', str(row['id'])).replace('{{name}}', row['name']).replace(
+            '{{comments_count}}',
+            str(row['comments_count']))
+    return {
+        '{{sities}}': items,
+    }
