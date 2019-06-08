@@ -7,7 +7,7 @@
 python main.py
 ```
 
-### Тесты(Covered View 96%):
+### Тесты:
 ```
 python -m unittest
 ```
