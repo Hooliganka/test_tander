@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport"
+              content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+              integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+        <title>Комментарий</title>
+    </head>
+    <body>
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <p class="navbar-brand">Tander</p>
+        </div>
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-nav">
+            <li><a href="/view/">Просмотр/удаление комментариев <span class="sr-only">(current)</span></a></li>
+            <li><a href="/stat/">Статистика <span class="sr-only">(current)</span></a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <div class="container">
+        <div class="row">
+            <div class="col-sm-10" style="margin-top: 15px">
+                {{SUCCESS}}
+                {{ERROR}}
+                <form method="get" role="form" action="">
+                    <div data-toggle="validator" class="form-group row">
+                        <label for="example1" class="col-xs-2 col-form-label">Имя</label>
+                        <div class="col-xs-5">
+                            <input class="form-control" type="text" name="name" placeholder="Ваше имя" id="example1">
+                        </div>
+                    </div>
+                    <div data-toggle="validator" class="form-group row">
+                        <label for="example2" class="col-xs-2 col-form-label">Фамилия</label>
+                        <div class="col-xs-5">
+                            <input class="form-control" type="text" name="last_name" placeholder="Ваша фамилия" id="example2">
+                        </div>
+                    </div>
+                    <div data-toggle="validator" class="form-group row">
+                        <label for="example3" class="col-xs-2 col-form-label">Отчество</label>
+                        <div class="col-xs-5">
+                            <input class="form-control" type="text" name="middle_name" placeholder="Ваше отчество"
+                                   id="example3" autofocus required>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="control-label col-xs-2" for="region">Регион</label>
+                        <div class="col-xs-5 col-md-4">
+                            <select id="region" name="region" class="form-control">
+                                <option value="-1">- Выберите регион -</option>
+                                {{regions}}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label class="control-label col-xs-2" for="city">Город</label>
+                        <div class="col-xs-5 col-md-4">
+                            <select id="city" name="city" class="form-control" disabled="disabled">
+                                <option value="0">- Выберите город -</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="example6" class="col-xs-2 col-form-label">Email</label>
+                        <div class="col-xs-5">
+                            <input class="form-control" type="text" name="email" placeholder="test@example.com"
+                                   id="example6" >
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="example7" class="col-xs-2 col-form-label">Телефон</label>
+                        <div class="col-xs-5">
+                            <input class="form-control" type="tel" name="telephone" placeholder="+7(555)555-55-55"
+                                   id="example7"
+                                   pattern="^(\s*)?(\+)?([- _():=+]?\d[- _():=+]?){10,14}(\s*)?$" title="+7(903)888-88-88">
+                            <p>Пример номера телефона: +7(555)555-55-55</p>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="example8" class="col-xs-2 col-form-label">Комментарий</label>
+                        <div class="col-xs-5">
+                            <textarea class="form-control" id="example8" name="comment" placeholder="Комментарий..."
+                                      rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-xs-5">
+                            <input class="form_btn" id="send" type="submit" value="Отправить">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        function getXmlHttp() {
+            var xmlhttp;
+            try {
+                xmlhttp = new ActiveXObject("Msxml2.XMLHTTP");
+            } catch (e) {
+                try {
+                    xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+                } catch (E) {
+                    xmlhttp = false;
+                }
+            }
+            if (!xmlhttp && typeof XMLHttpRequest != 'undefined') {
+                xmlhttp = new XMLHttpRequest();
+            }
+            return xmlhttp;
+        }
+        document.getElementById("region").addEventListener("change", myFunction);
+        var sity_element = document.getElementById("city");
+        function myFunction(event) {
+            if (event.target.value === '-1') {
+                sity_element.setAttribute("disabled", "disabled");
+                sity_element.innerHTML = '<option value="-1">- Выберите город -</option>';
+            } else {
+                sity_element.removeAttribute("disabled");
+                var req = getXmlHttp();
+                req.onreadystatechange = function () {
+                    if (req.readyState === 4) {
+                        if (req.status === 200) {
+                            var data = JSON.parse(req.responseText);
+                            console.log(data);
+                            var result = '';
+                            for (var i = 0; i < data.length; i++) {
+                                result += '<option value="' + data[i][0] + '">' + data[i][1] + '</option>';
+                            }
+
+                            sity_element.innerHTML = result;
+                            console.log(result);
+                        }
+                    }
+                };
+                req.open('POST', '/api/get_cities/', true);
+                req.send('city=' + event.target.value);
+            }
+        }
+    </script>
+    </body>
+</html>
